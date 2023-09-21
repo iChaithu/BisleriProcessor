@@ -133,13 +133,27 @@ class BotGadu:
         try:
             if user_input.text.isnumeric():
                 sales_data['wholesale_Retail_jars_return'] = user_input.text 
+                complimentry_cans = self.bot.send_message(user_input.chat.id,f"Enter the Damage can(s) on {sales_data.get('sale_date', {})}")
+                self.bot.register_next_step_handler(complimentry_cans, self.get_leakage, sales_data)
+            else:
+                self.bot.send_message(user_input.chat.id, "Input should be a numeric value. Click /start to restart")
+        except Exception as e:
+            self.bot.send_message(user_input.chat.id, f"Error {e} Occured")
+        return
+        
+    def get_leakage(self, user_input, sales_data):
+        try:
+            leakage = user_input.text
+            if leakage.isnumeric():
+                sales_data['Damage'] = leakage
                 complimentry_cans = self.bot.send_message(user_input.chat.id,f"Enter the complementry can(s) on {sales_data.get('sale_date', {})}")
                 self.bot.register_next_step_handler(complimentry_cans, self.sale_confirmation, sales_data)
             else:
                 self.bot.send_message(user_input.chat.id, "Input should be a numeric value. Click /start to restart")
         except Exception as e:
             self.bot.send_message(user_input.chat.id, f"Error {e} Occured")
-        return
+        return        
+                
         
     def sale_confirmation(self, user_input, sales_data):
         try:
@@ -234,10 +248,9 @@ class BotGadu:
             if user_input.text == "Yes":
                 final_text = '\n'.join([f'{key} : {value}' for key, value in sales_data.items()])
                 self.bot.send_message(user_input.chat.id, final_text)
-                self.bot.send_message(6271503799, final_text)
-                profit = int(sales_data['retail_can_sales']) * 29 + int(sales_data['online_can_sales']) * 29 + int(sales_data['wholesale_can_sales']) * 14
-                final_text += f'Profit : {profit}\n'
-                self.bot.send_message(5579239229, final_text)
+                # profit = int(sales_data['retail_can_sales']) * 29 + int(sales_data['online_can_sales']) * 29 + int(sales_data['wholesale_can_sales']) * 14
+                # final_text += f'Profit : {profit}\n'
+                # self.bot.send_message(5579239229, final_text)
                 self.bot.send_message(user_input.chat.id,"Data is updating in the back-end. Please wait for confirmation.")
                 db_update_confirmation =  data_processor.Database.sheets_data_updater(sales_data,'Bisleri_sales', 'Sheet1', 'Updating_sales_data')
                 if db_update_confirmation == True:
@@ -285,18 +298,25 @@ class BotGadu:
                 markup = types.ReplyKeyboardMarkup(row_width=2)
                 markup.add(types.KeyboardButton("Yes"),types.KeyboardButton("No"))
                 self.bot.send_message(user_input.chat.id, message_text, reply_markup=markup)
-                self.bot.register_next_step_handler(user_input, self.stock_input_confirmer,  stock_data)
+                self.bot.register_next_step_handler(user_input, self.db_data_updater, dict = {'data': stock_data, 'mode': 'Stock_data_update'})
         else:
             print('Request Out of bound')
         return
         
     def Finance_data(self, user_input):
-        # Finance Code here
+        # Write Finance code here --> Need to update options for new Variables also 
         return
         
-    def stock_input_confirmer(self, user_input, stock_data):
+    def db_data_updater(self, user_input, dict):
         if user_input.text == "Yes":
-            print("Update the DB")
+            if dict['mode'] == 'Stock_data_update':
+                confirmer = data_processor.Database.sheets_data_updater(dict['data'],'Bisleri_sales','Sheet2',dict['mode'])
+                if confirmer:
+                    self.bot.send_message(user_input.chat.id, "Data Updated!")  
+            elif dict['mode'] == 'finance_data':
+                print("Update the Finance")
+                
+                
         return
     
     def run(self):

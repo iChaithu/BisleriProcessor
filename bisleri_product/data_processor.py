@@ -29,8 +29,7 @@ class Database:
             if task == 'Updating_sales_data':
                 dictionary['transaction_id'] = support_functions.supporter.transaction_id_generator()
                 worksheet.append_row(list(dictionary.values()))
-                return True
-                
+                return True   
             elif task == 'Update_Stock_Finance':
                 data = worksheet.get_all_values()
                 required_data = {data[0][i]: int(row[i]) for i in range(len(data[0])) for row in data[1:]}
@@ -40,7 +39,8 @@ class Database:
                     'available_amount': required_data['available_amount'] + int(dictionary["final_payment"]),
                     'On_hold_amount': required_data['On_hold_amount'] + int(dictionary["On_hold_amount"]) - int(dictionary["received_on_hold_amount"]),
                     'e_commerce': required_data['e_commerce'] + int(dictionary["E-commerce_amount"]),
-                    'Total_Expensives': required_data['Total_Expensives'] + int(dictionary["expenses"])}
+                    'Total_Expensives': required_data['Total_Expensives'] + int(dictionary["expenses"]),
+                    'Damage' : required_data['Damage'] + int(dictionary["Damage"])}
                 dictionary['reason']="sales_data_updated"
                 log_creater = Database.create_update_json(required_data, updated_data, dictionary)
                 if log_creater:
@@ -49,11 +49,29 @@ class Database:
                         worksheet.update_cell(2, column_index, updated_data[i])
                     return True 
                 else:
-                    print("Log creater declined to work further ")
-                    
+                    print("Log creater declined to work further ") 
             elif task == 'Updating_transaction_record':
                 worksheet.append_row(list(dictionary.values()))
                 return True
+            elif task == 'Stock_data_update':
+                data = worksheet.get_all_values()
+                required_data = {data[0][i]: int(row[i]) for i in range(len(data[0])) for row in data[1:]}
+                updated_data = {
+                'available_stock': required_data.get('available_stock', 0) + int(dictionary.get("STOCK", 0)),
+                'available_empties': required_data.get('available_empties', 0) - int(dictionary.get("EMPTIES", 0)) + int(dictionary.get("DEPOSIT", 0)),
+                'Deposit': required_data.get('Deposit',0) + int(dictionary.get("DEPOSIT", 0)),
+                'Damage': required_data.get('Damage',0) - int(dictionary.get("DAMAGE RETURN", 0)),
+                'e_commerce': required_data.get('e_commerce', 0) + (int(dictionary.get("DAMAGE RETURN", 0)) * 61)}
+                dictionary['transaction_id'] = support_functions.supporter.transaction_id_generator()
+                dictionary['reason'] = task
+                for i in updated_data.keys():
+                    column_index = worksheet.find(i).col
+                    worksheet.update_cell(2, column_index, updated_data[i])  
+                data = worksheet.get_all_values()
+                updated_dataa = {data[0][i]: int(row[i]) for i in range(len(data[0])) for row in data[1:]}  
+                log_creater = Database.create_update_json(required_data, updated_dataa, dictionary)
+                if log_creater:
+                    return True
             else:
                 print("Request out of bound!")
         except Exception as e:
