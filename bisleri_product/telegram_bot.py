@@ -1,7 +1,8 @@
 import os, pytz, telebot
-from bisleri_product import data_processor
+from bisleri_product import data_processor, support_functions
 from datetime import datetime
 from telebot import types
+
 
 class BotGadu:
     print("Bisleri Bot on Force...!")
@@ -15,16 +16,16 @@ class BotGadu:
             self.bot.register_next_step_handler(user_input, self.authorize_user)
             
     def authorize_user(self, user_input):
-        if int(user_input.text) == int(os.environ['sales_enter_password']): # add this to environment 
+        if int(user_input.text) == int(os.environ['sales_enter_password']): 
             self.bot.send_message(user_input.chat.id,"Entered into the sales data entry Mode")
             date = self.bot.send_message(user_input.chat.id,"Please Enter the Date of sales in this format: dd-mm-yyyy (e.g. 02-06-2004)")
             self.bot.register_next_step_handler(date, self.get_date)
             
-        elif int(user_input.text) == int(os.environ['Authoriser']): # add this to environment , Work on this 
-            self.bot.send_message(user_input.chat.id,"Entered into Authoriser Mode")
-            self.bot.send_message(user_input.chat.id,"To Update stock Reply 1")
-            output = self.bot.send_message(user_input.chat.id,"To Finance Reply 2")
-            self.bot.register_next_step_handler(output, self.S_F_Handler)
+        elif int(user_input.text) == int(os.environ['Authoriser']): 
+            markup = types.ReplyKeyboardMarkup(row_width=2)
+            markup.add(types.KeyboardButton("Update stock"),types.KeyboardButton("Update Finance"))
+            handler = self.bot.send_message(user_input.chat.id, "Entered into Authoriser Mode..\n Select an Option",reply_markup=markup)
+            self.bot.register_next_step_handler(handler, self.sales_finance_Handler)
             return
         else:
             self.bot.send_message(user_input.chat.id, "Hey! You gone into Else block , Please contact Chaithu for further assistance.")
@@ -233,8 +234,10 @@ class BotGadu:
             if user_input.text == "Yes":
                 final_text = '\n'.join([f'{key} : {value}' for key, value in sales_data.items()])
                 self.bot.send_message(user_input.chat.id, final_text)
-                # self.bot.send_message(6271503799, final_text)
-                # self.bot.send_message(5579239229, final_text)
+                self.bot.send_message(6271503799, final_text)
+                profit = int(sales_data['retail_can_sales']) * 29 + int(sales_data['online_can_sales']) * 29 + int(sales_data['wholesale_can_sales']) * 14
+                final_text += f'Profit : {profit}\n'
+                self.bot.send_message(5579239229, final_text)
                 self.bot.send_message(user_input.chat.id,"Data is updating in the back-end. Please wait for confirmation.")
                 db_update_confirmation =  data_processor.Database.sheets_data_updater(sales_data,'Bisleri_sales', 'Sheet1', 'Updating_sales_data')
                 if db_update_confirmation == True:
@@ -252,6 +255,54 @@ class BotGadu:
                 self.bot.send_message(user_input.chat.id, "Data updating failed. Please try again by pressing /start.")
         except Exception as e:
             self.bot.send_message(user_input.chat.id, f"An error {e} occurred while processing your request.Please try again by pressing /start.")
+
+    def sales_finance_Handler(self, user_input):
+        if user_input.text == "Update stock":
+            user_input = self.bot.send_message(user_input.chat.id, support_functions.Questions.stock_questions[1][0])
+            self.bot.register_next_step_handler(user_input, self.stock_data, count = 1)
+            return
+        elif user_input.text == "Update Finance":
+            markup = types.ReplyKeyboardMarkup(row_width=2)
+            markup.add(types.KeyboardButton("deduct available amount"),types.KeyboardButton("ecommerce amount received"),types.KeyboardButton("deduct on_hold amount"),types.KeyboardButton("deduct expenses"))
+            user_input = self.bot.send_message(user_input.chat.id, 'Choose an Option to update the data in the DB', reply_markup=markup)
+            return 
+        
+    def stock_data(self, user_input, count=None, stock_data=None):
+        if stock_data is None:
+            stock_data = {}
+            
+        if count and count < len(support_functions.Questions.stock_questions) + 1:
+            stock_data[support_functions.Questions.stock_questions[count][1]] = user_input.text
+            count = count + 1
+            if count < len(support_functions.Questions.stock_questions) + 1:
+                user_input = self.bot.send_message(user_input.chat.id, support_functions.Questions.stock_questions[count][0])
+                self.bot.register_next_step_handler(user_input, self.stock_data, count, stock_data)
+            else:
+                message_text = ""
+                for item, key in stock_data.items():
+                    message_text += f'{item} : {key}\n'
+                message_text += "Press Yes to confirm the stock data and Update the Database"
+                markup = types.ReplyKeyboardMarkup(row_width=2)
+                markup.add(types.KeyboardButton("Yes"),types.KeyboardButton("No"))
+                self.bot.send_message(user_input.chat.id, message_text, reply_markup=markup)
+                self.bot.register_next_step_handler(user_input, self.stock_input_confirmer,  stock_data)
+        else:
+            print('Request Out of bound')
+        return
+        
+    def Finance_data(self, user_input):
+        # Finance Code here
+        return
+        
+    def stock_input_confirmer(self, user_input, stock_data):
+        if user_input.text == "Yes":
+            print("Update the DB")
+        return
     
     def run(self):
         self.bot.infinity_polling()
+
+
+
+
+
