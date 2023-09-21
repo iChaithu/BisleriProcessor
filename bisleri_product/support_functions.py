@@ -15,3 +15,12 @@ class Questions:
                         2: ("how many EMPTIES are returned", "EMPTIES"),
                         3: ("How many cans of DEPOSIT", "DEPOSIT"),
                         4: ("How many Damaged cans returned", "DAMAGE RETURN")}
+
+
+    finance_questions = {
+        "deduct available amount": ("Please input the amount you'd like to deduct from the available balance.", "available_amount"),
+        "ecommerce amount received": ("Enter the amount you wish to deduct from your E-commerce funds.","e_commerce"),
+        "deduct on_hold amount": ("Specify the amount you want to deduct from the On Hold Amount.","On_hold_amount"),
+        "deduct expenses": ("Provide the amount you intend to deduct from your expenses.","Total_Expensives"),
+        "deduct Deposit": ("How many cans should be subtracted from the Deposit can count?","Deposit")
+    }

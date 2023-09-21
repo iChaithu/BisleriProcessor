@@ -12,8 +12,18 @@ class BotGadu:
         @self.bot.message_handler(commands=['start'])
         def start(message):
             print(f"Bot working for user First name: {message.from_user.first_name} Last name: {message.from_user.last_name} and ID : {message.chat.id}")
-            user_input = self.bot.reply_to(message, "Hello Amigo! Please Enter Your Password to Continue ")
+            markup = types.ReplyKeyboardMarkup(row_width=2)
+            markup.add(types.KeyboardButton("Sales Entry Mode"),types.KeyboardButton("Authoriser Mode"),types.KeyboardButton("Menu"))
+            user_input = self.bot.reply_to(message, "Hello Amigo! Choose the Option ",reply_markup=markup)
+            self.bot.register_next_step_handler(user_input, self.login_processor)
+    
+    def login_processor(self, user_input):
+        if user_input.text == "Sales Entry Mode" or user_input.text == "Authoriser Mode":
+            self.bot.send_message(user_input.chat.id,"Enter the Passcode to Proceed")
             self.bot.register_next_step_handler(user_input, self.authorize_user)
+        elif user_input.text == "Menu":
+            print("Passing Mode")
+        return
             
     def authorize_user(self, user_input):
         if int(user_input.text) == int(os.environ['sales_enter_password']): 
@@ -248,9 +258,9 @@ class BotGadu:
             if user_input.text == "Yes":
                 final_text = '\n'.join([f'{key} : {value}' for key, value in sales_data.items()])
                 self.bot.send_message(user_input.chat.id, final_text)
-                # profit = int(sales_data['retail_can_sales']) * 29 + int(sales_data['online_can_sales']) * 29 + int(sales_data['wholesale_can_sales']) * 14
-                # final_text += f'Profit : {profit}\n'
-                # self.bot.send_message(5579239229, final_text)
+                profit = int(sales_data['retail_can_sales']) * 29 + int(sales_data['online_can_sales']) * 29 + int(sales_data['wholesale_can_sales']) * 14
+                final_text += f'Profit : {profit}\n'
+                self.bot.send_message(5579239229, final_text)
                 self.bot.send_message(user_input.chat.id,"Data is updating in the back-end. Please wait for confirmation.")
                 db_update_confirmation =  data_processor.Database.sheets_data_updater(sales_data,'Bisleri_sales', 'Sheet1', 'Updating_sales_data')
                 if db_update_confirmation == True:
@@ -276,8 +286,9 @@ class BotGadu:
             return
         elif user_input.text == "Update Finance":
             markup = types.ReplyKeyboardMarkup(row_width=2)
-            markup.add(types.KeyboardButton("deduct available amount"),types.KeyboardButton("ecommerce amount received"),types.KeyboardButton("deduct on_hold amount"),types.KeyboardButton("deduct expenses"))
-            user_input = self.bot.send_message(user_input.chat.id, 'Choose an Option to update the data in the DB', reply_markup=markup)
+            markup.add(types.KeyboardButton("deduct available amount"),types.KeyboardButton("ecommerce amount received"),types.KeyboardButton("deduct on_hold amount"),types.KeyboardButton("deduct expenses"),types.KeyboardButton("deduct Deposit"))
+            user_input = self.bot.send_message(user_input.chat.id, 'Choose an Option to update the data in the DataBase', reply_markup=markup)
+            self.bot.register_next_step_handler(user_input, self.Finance_data)
             return 
         
     def stock_data(self, user_input, count=None, stock_data=None):
@@ -303,21 +314,40 @@ class BotGadu:
             print('Request Out of bound')
         return
         
-    def Finance_data(self, user_input):
-        # Write Finance code here --> Need to update options for new Variables also 
-        return
-        
+    def Finance_data(self, user_input, confirmer=False, variable=None, reason=False,my_dict= None ):
+        if reason and variable:
+            my_dict = {}
+            my_dict['variable'] = user_input.text
+            my_dict['column'] = variable
+            user_input = self.bot.send_message(user_input.chat.id, "Please Enter the reason for this Transaction Update")
+            self.bot.register_next_step_handler(user_input, self.Finance_data, True, variable, False, my_dict) 
+        if confirmer:
+            my_dict['reason'] = user_input.text 
+            markup = types.ReplyKeyboardMarkup(row_width=2)
+            markup.add(types.KeyboardButton("Yes"), types.KeyboardButton("No"))
+            user_input = self.bot.send_message(user_input.chat.id, "Press Yes to Confirm the Transaction", reply_markup=markup)
+            self.bot.register_next_step_handler(user_input, self.db_data_updater, dict ={'data': my_dict, 'mode': 'Finance_data_update'})
+            return
+        else:
+            if user_input.text in support_functions.Questions.finance_questions:
+                variable = support_functions.Questions.finance_questions[user_input.text][1]
+                user_input = self.bot.send_message(user_input.chat.id, support_functions.Questions.finance_questions[user_input.text][0])
+                self.bot.register_next_step_handler(user_input, self.Finance_data, False, variable, True)
+
     def db_data_updater(self, user_input, dict):
         if user_input.text == "Yes":
             if dict['mode'] == 'Stock_data_update':
                 confirmer = data_processor.Database.sheets_data_updater(dict['data'],'Bisleri_sales','Sheet2',dict['mode'])
                 if confirmer:
+                    self.bot.send_message(user_input.chat.id, "Data Updated!") 
+                    return
+            elif dict['mode'] == 'Finance_data_update':
+                print("Update the Finance")   
+                confirmer = data_processor.Database.sheets_data_updater(dict['data'],'Bisleri_sales','Sheet2',dict['mode'])
+                if confirmer:
                     self.bot.send_message(user_input.chat.id, "Data Updated!")  
-            elif dict['mode'] == 'finance_data':
-                print("Update the Finance")
-                
-                
-        return
+                    return
+        
     
     def run(self):
         self.bot.infinity_polling()

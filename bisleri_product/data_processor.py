@@ -34,12 +34,13 @@ class Database:
                 data = worksheet.get_all_values()
                 required_data = {data[0][i]: int(row[i]) for i in range(len(data[0])) for row in data[1:]}
                 updated_data = {
-                    'available_stock': required_data['available_stock'] - int(dictionary["total_cans"]),
+                    'available_stock': required_data['available_stock'] - ( int(dictionary["total_cans"]) + int(dictionary["Damage"])),
                     'available_empties': (required_data['available_empties'] + int(dictionary['wholesale_Retail_jars_return']) + int(dictionary['e_commerece_empty_return'])) - (int(dictionary["online_deposites"]) + int(dictionary["retail_deposites"])),
                     'available_amount': required_data['available_amount'] + int(dictionary["final_payment"]),
                     'On_hold_amount': required_data['On_hold_amount'] + int(dictionary["On_hold_amount"]) - int(dictionary["received_on_hold_amount"]),
                     'e_commerce': required_data['e_commerce'] + int(dictionary["E-commerce_amount"]),
                     'Total_Expensives': required_data['Total_Expensives'] + int(dictionary["expenses"]),
+                    'Deposit': required_data['Deposit'],
                     'Damage' : required_data['Damage'] + int(dictionary["Damage"])}
                 dictionary['reason']="sales_data_updated"
                 log_creater = Database.create_update_json(required_data, updated_data, dictionary)
@@ -72,8 +73,21 @@ class Database:
                 log_creater = Database.create_update_json(required_data, updated_dataa, dictionary)
                 if log_creater:
                     return True
+            elif task == "Finance_data_update":
+                data = worksheet.get_all_values()
+                required_data = {data[0][i]: int(row[i]) for i in range(len(data[0])) for row in data[1:]}
+                new_dict = {required_data[dictionary['column']] - int(dictionary['variable'])}
+                column_index = worksheet.find(dictionary['column']).col
+                worksheet.update_cell(2, column_index, new_dict)
+                dictionary['transaction_id'] = support_functions.supporter.transaction_id_generator()
+                data = worksheet.get_all_values()
+                updated_dataa = {data[0][i]: int(row[i]) for i in range(len(data[0])) for row in data[1:]}
+                log_creater = Database.create_update_json(required_data, updated_dataa, dictionary)
+                if log_creater:
+                    return True
             else:
                 print("Request out of bound!")
+                return False
         except Exception as e:
             print(f"An error occurred while updating data: {e}")
             return False
