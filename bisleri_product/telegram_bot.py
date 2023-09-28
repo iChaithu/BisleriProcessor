@@ -21,8 +21,11 @@ class BotGadu:
         if user_input.text == "Sales Entry Mode" or user_input.text == "Authoriser Mode":
             self.bot.send_message(user_input.chat.id,"Enter the Passcode to Proceed")
             self.bot.register_next_step_handler(user_input, self.authorize_user)
-        elif user_input.text == "Menu":
-            print("Passing Mode")
+        elif user_input.text == "Menu": 
+            markup = types.ReplyKeyboardMarkup(row_width=2)
+            markup.add(types.KeyboardButton("Get sales By Date "))
+            self.bot.send_message(user_input.chat.id,"Select the Option!",reply_markup=markup)
+            self.bot.register_next_step_handler(user_input, self.sales_definer, "take_date_data")
         return
             
     def authorize_user(self, user_input):
@@ -189,10 +192,10 @@ class BotGadu:
                 sales_data['whole_sale_deposite_amount'] = (int(sales_data['wholesale_deposite']) * 150)
                 sales_data['E-commerce_amount'] = (int(sales_data['online_can_sales']) * 90 + int(sales_data['online_deposites']) * 150)
                 sales_data['calculated_received_amount'] = sum([sales_data.get(key, 0) for key in ['retail_can_sales_amount', 'whole_sale_amount', 'retail_deposite_amount', 'whole_sale_deposite_amount',(int(sales_data['complimentry_cans']) * 61)]]) - (int(sales_data.get('wholesale_Retail_jars_return', 0)) * 150  + int(sales_data['e_commerece_empty_return']) * 150)
-                amount_message = {  'Whole sale Deposit can(s)': sales_data.get('retail_deposites'),
-                                    'Online deposit can(s)': sales_data['online_deposites'],
-                                    'E-commerce can(s) return count': sales_data['e_commerece_empty_return'],
-                                    'Retail and Whole sale Can(s) return count': sales_data['wholesale_Retail_jars_return']}
+                amount_message = {'Whole sale Deposit can(s)': sales_data.get('retail_deposites'),
+                                'Online deposit can(s)': sales_data['online_deposites'],
+                                'E-commerce can(s) return count': sales_data['e_commerece_empty_return'],
+                                'Retail and Whole sale Can(s) return count': sales_data['wholesale_Retail_jars_return']}
                 self.bot.send_message(user_input.chat.id, '\n'.join([f'{key} : {value}' for key, value in amount_message.items()]))
                 markup = types.ReplyKeyboardMarkup(row_width=2)
                 markup.add(types.KeyboardButton("Yes"),types.KeyboardButton("No"))
@@ -337,18 +340,42 @@ class BotGadu:
     def db_data_updater(self, user_input, dict):
         if user_input.text == "Yes":
             if dict['mode'] == 'Stock_data_update':
+                self.bot.send_message(user_input.chat.id, "Kindly hold on while the data is being updated.")
                 confirmer = data_processor.Database.sheets_data_updater(dict['data'],'Bisleri_sales','Sheet2',dict['mode'])
                 if confirmer:
                     self.bot.send_message(user_input.chat.id, "Data Updated!") 
                     return
             elif dict['mode'] == 'Finance_data_update':
-                print("Update the Finance")   
+                self.bot.send_message(user_input.chat.id, "Kindly hold on while the data is being updated.")
                 confirmer = data_processor.Database.sheets_data_updater(dict['data'],'Bisleri_sales','Sheet2',dict['mode'])
                 if confirmer:
                     self.bot.send_message(user_input.chat.id, "Data Updated!")  
-                    return
-        
-    
+                    return  
+
+    def sales_definer(self, user_input, mode, date=None):
+        try:
+            if mode == "take_date_data":
+                user_input = self.bot.send_message(user_input.chat.id, "Kindly provide the starting date for the sales data you need in the following format: dd-mm-yyyy (e.g., 02-06-2004).")
+                self.bot.register_next_step_handler(user_input, self.sales_definer, "take_end_date_data")
+            elif mode == "take_end_date_data":
+                date = dict()
+                date['starting_date'] = datetime.strptime(user_input.text, "%d-%m-%Y").date()
+                user_input = self.bot.send_message(user_input.chat.id, "Kindly provide the Ending date for the sales data you need in the following format: dd-mm-yyyy (e.g., 02-06-2004).")
+                self.bot.register_next_step_handler(user_input, self.sales_definer, "get_required_data", date)
+            elif mode == "get_required_data":
+                if date:
+                    date['Ending_date'] = datetime.strptime(user_input.text, "%d-%m-%Y").date()
+                    self.bot.send_message(user_input.chat.id, "Kindly wait while the bot is calculating the data.")
+                    confirmer = data_processor.Database.sales_viewer(date)
+                    if confirmer:
+                        self.bot.send_message(user_input.chat.id, '\n'.join([f'{key} : {value}' for key, value in confirmer.items()]))
+                        self.bot.send_message(user_input.chat.id, "Restart the Bot here > /start <")
+                    else:
+                        self.bot.send_message(user_input.chat.id, "There was an issue processing the data. Please try again or Contact ChaithU.")
+        except Exception as e:
+            self.bot.send_message(user_input.chat.id, f"An error occurred: {str(e)}")
+        return
+
     def run(self):
         self.bot.infinity_polling()
 

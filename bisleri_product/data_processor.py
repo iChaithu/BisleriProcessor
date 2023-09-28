@@ -105,3 +105,26 @@ class Database:
             print(f"Error occurred while creating or updating JSON: {e}")
             return False
 
+    def sales_viewer(date):
+        try:
+            worksheet = gspread.authorize(Database.creds).open('Bisleri_sales').worksheet('Sheet1')
+            data = worksheet.get_all_values()
+            df = pd.DataFrame(data[1:], columns=data[0])
+            df['sale_date'] = pd.to_datetime(df['sale_date'], format='%d-%m-%Y', errors='coerce')         
+            start_date = pd.to_datetime(date['starting_date'], format='%d-%m-%Y', errors='coerce')
+            end_date = pd.to_datetime(date['Ending_date'], format='%d-%m-%Y', errors='coerce')                
+            filtered_df = df[(df['sale_date'] >= start_date) & (df['sale_date'] <= end_date)]
+            quote = {
+                "Recived Total sale": filtered_df['final_payment'].astype(int).sum(),
+                "Calculated amount": filtered_df['calculated_received_amount'].astype(int).sum(),
+                "Total Expensives": filtered_df['expenses'].astype(int).sum(),
+                "Total E- Comm": filtered_df['E-commerce_amount'].astype(int).sum(),
+                "Total cans": filtered_df['total_cans'].astype(int).sum(),
+                "Total Deposit Cans": (filtered_df['online_deposites'].astype(int).sum() + filtered_df['retail_deposites'].astype(int).sum() + filtered_df['wholesale_deposite'].astype(int).sum()),
+                "Total Deposit amount": ((filtered_df['online_deposites'].astype(int).sum() + filtered_df['retail_deposites'].astype(int).sum() + filtered_df['wholesale_deposite'].astype(int).sum()) * 150),
+                "Total Jars Return": (filtered_df['e_commerece_empty_return'].astype(int).sum() + filtered_df['wholesale_Retail_jars_return'].astype(int).sum())}
+            return quote
+        except Exception as e:
+            print(f"An error occurred: {str(e)}")
+            return None
+    
