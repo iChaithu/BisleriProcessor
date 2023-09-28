@@ -76,9 +76,9 @@ class Database:
             elif task == "Finance_data_update":
                 data = worksheet.get_all_values()
                 required_data = {data[0][i]: int(row[i]) for i in range(len(data[0])) for row in data[1:]}
-                new_dict = {required_data[dictionary['column']] - int(dictionary['variable'])}
+                new_dict = {dictionary['column']: required_data[dictionary['column']] - int(dictionary['variable'])}
                 column_index = worksheet.find(dictionary['column']).col
-                worksheet.update_cell(2, column_index, new_dict)
+                worksheet.update_cell(2, column_index,new_dict[dictionary['column']])
                 dictionary['transaction_id'] = support_functions.supporter.transaction_id_generator()
                 data = worksheet.get_all_values()
                 updated_dataa = {data[0][i]: int(row[i]) for i in range(len(data[0])) for row in data[1:]}
