@@ -35,7 +35,7 @@ class Database:
                 required_data = {data[0][i]: int(row[i]) for i in range(len(data[0])) for row in data[1:]}
                 updated_data = {
                     'available_stock': required_data['available_stock'] - ( int(dictionary["total_cans"]) + int(dictionary["Damage"])),
-                    'available_empties': (required_data['available_empties'] + int(dictionary['wholesale_Retail_jars_return']) + int(dictionary['e_commerece_empty_return'])) - (int(dictionary["online_deposites"]) + int(dictionary["retail_deposites"])),
+                    'available_empties': (required_data['available_empties'] + int(dictionary['wholesale_Retail_jars_return']) + int(dictionary["total_cans"]) + int(dictionary['e_commerece_empty_return'])) - (int(dictionary["online_deposites"]) + int(dictionary["retail_deposites"])),
                     'available_amount': required_data['available_amount'] + int(dictionary["final_payment"]),
                     'On_hold_amount': required_data['On_hold_amount'] + int(dictionary["On_hold_amount"]) - int(dictionary["received_on_hold_amount"]),
                     'e_commerce': required_data['e_commerce'] + int(dictionary["E-commerce_amount"]),

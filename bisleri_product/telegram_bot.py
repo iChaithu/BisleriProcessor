@@ -351,6 +351,9 @@ class BotGadu:
                 if confirmer:
                     self.bot.send_message(user_input.chat.id, "Data Updated!")  
                     return  
+        else:
+            self.bot.send_message(user_input.chat.id, "Try again then, << /start >>.")
+            
 
     def sales_definer(self, user_input, mode, date=None):
         try:
