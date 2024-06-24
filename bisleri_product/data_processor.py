@@ -15,12 +15,9 @@ class Database:
             df  = pd.DataFrame(data[1:], columns=data[0])
             sale_dates = pd.to_datetime(df['sale_date'],format='%d-%m-%Y',errors='coerce')
             Input_date = pd.to_datetime(input_date.get('sale_date', {}),format='%d-%m-%Y',errors='coerce')
-            if pd.Timestamp(Input_date) in sale_dates.values:
-                return True
-            else:
-                return False
-        except Exception as e:
-            return None
+            if pd.Timestamp(Input_date) in sale_dates.values:return True
+            else:return False
+        except Exception as e:return None
 
     @staticmethod
     def sheets_data_updater(dictionary, sheet_name, sheet_number, task):
@@ -71,8 +68,7 @@ class Database:
                 data = worksheet.get_all_values()
                 updated_dataa = {data[0][i]: int(row[i]) for i in range(len(data[0])) for row in data[1:]}  
                 log_creater = Database.create_update_json(required_data, updated_dataa, dictionary)
-                if log_creater:
-                    return True
+                if log_creater:return True
             elif task == "Finance_data_update":
                 data = worksheet.get_all_values()
                 required_data = {data[0][i]: int(row[i]) for i in range(len(data[0])) for row in data[1:]}
@@ -83,14 +79,9 @@ class Database:
                 data = worksheet.get_all_values()
                 updated_dataa = {data[0][i]: int(row[i]) for i in range(len(data[0])) for row in data[1:]}
                 log_creater = Database.create_update_json(required_data, updated_dataa, dictionary)
-                if log_creater:
-                    return True
-            else:
-                print("Request out of bound!")
-                return False
-        except Exception as e:
-            print(f"An error occurred while updating data: {e}")
-            return False
+                if log_creater:return True
+            else:print("Request out of bound!");return False
+        except Exception as e:print(f"An error occurred while updating data: {e}");return False
 
     @staticmethod
     def create_update_json(old_data, new_data, information):
@@ -98,31 +89,25 @@ class Database:
             update_dict = {key: {'old_value': old_data.get(key), 'new_value': new_data.get(key, {})} for key in new_data}
             my_dict = {f"{k}_{change_type}_value": v.get(change_type+'_value', '') for k, v in update_dict.items() for change_type in ['old', 'new']}
             my_dict.update(transaction_id=information['transaction_id'], reason = information['reason'], time=support_functions.supporter.get_india_datetime()[0], date=support_functions.supporter.get_india_datetime()[1])
-            log_updater = Database.sheets_data_updater(my_dict, 'Bisleri_sales', 'Sheet3', 'Updating_transaction_record')
-            if log_updater:
-                return True
-        except Exception as e:
-            print(f"Error occurred while creating or updating JSON: {e}")
-            return False
+            if Database.sheets_data_updater(my_dict, 'Bisleri_sales', 'Sheet3', 'Updating_transaction_record'): return True
+        except Exception as e:print(f"Error occurred while creating or updating JSON: {e}");return False
 
     def sales_viewer(date):
         try:
             worksheet = gspread.authorize(Database.creds).open('Bisleri_sales').worksheet('Sheet1')
-            data = worksheet.get_all_values()
-            df = pd.DataFrame(data[1:], columns=data[0])
+            df = pd.DataFrame(worksheet.get_all_values()[1:], columns=worksheet.get_all_values()[0])
             df['sale_date'] = pd.to_datetime(df['sale_date'], format='%d-%m-%Y', errors='coerce')         
             start_date = pd.to_datetime(date['starting_date'], format='%d-%m-%Y', errors='coerce')
             end_date = pd.to_datetime(date['Ending_date'], format='%d-%m-%Y', errors='coerce')                
             filtered_df = df[(df['sale_date'] >= start_date) & (df['sale_date'] <= end_date)]
-            quote = {
-                "Recived Total sale": filtered_df['final_payment'].astype(int).sum(),
-                "Calculated amount": filtered_df['calculated_received_amount'].astype(int).sum(),
-                "Total Expensives": filtered_df['expenses'].astype(int).sum(),
-                "Total E- Comm": filtered_df['E-commerce_amount'].astype(int).sum(),
-                "Total cans": filtered_df['total_cans'].astype(int).sum(),
-                "Total Deposit Cans": (filtered_df['online_deposites'].astype(int).sum() + filtered_df['retail_deposites'].astype(int).sum() + filtered_df['wholesale_deposite'].astype(int).sum()),
-                "Total Deposit amount": ((filtered_df['online_deposites'].astype(int).sum() + filtered_df['retail_deposites'].astype(int).sum() + filtered_df['wholesale_deposite'].astype(int).sum()) * 150),
-                "Total Jars Return": (filtered_df['e_commerece_empty_return'].astype(int).sum() + filtered_df['wholesale_Retail_jars_return'].astype(int).sum())}
+            quote = {"Recived Total sale": filtered_df['final_payment'].astype(int).sum(),
+            "Calculated amount": filtered_df['calculated_received_amount'].astype(int).sum(),
+            "Total Expensives": filtered_df['expenses'].astype(int).sum(),
+            "Total E- Comm": filtered_df['E-commerce_amount'].astype(int).sum(),
+            "Total cans": filtered_df['total_cans'].astype(int).sum(),
+            "Total Deposit Cans": (filtered_df['online_deposites'].astype(int).sum() + filtered_df['retail_deposites'].astype(int).sum() + filtered_df['wholesale_deposite'].astype(int).sum()),
+            "Total Deposit amount": ((filtered_df['online_deposites'].astype(int).sum() + filtered_df['retail_deposites'].astype(int).sum() + filtered_df['wholesale_deposite'].astype(int).sum()) * 150),
+            "Total Jars Return": (filtered_df['e_commerece_empty_return'].astype(int).sum() + filtered_df['wholesale_Retail_jars_return'].astype(int).sum())}
             return quote
         except Exception as e:
             print(f"An error occurred: {str(e)}")

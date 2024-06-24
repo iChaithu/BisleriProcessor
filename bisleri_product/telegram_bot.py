@@ -8,7 +8,7 @@ class BotGadu:
     print("Bisleri Bot on Force...!")
     def __init__(self):
         self.bot = telebot.TeleBot(os.environ['token'])
-        
+
         @self.bot.message_handler(commands=['start'])
         def start(message):
             print(f"Bot working for user First name: {message.from_user.first_name} Last name: {message.from_user.last_name} and ID : {message.chat.id}")
@@ -16,24 +16,27 @@ class BotGadu:
             markup.add(types.KeyboardButton("Sales Entry Mode"),types.KeyboardButton("Authoriser Mode"),types.KeyboardButton("Menu"))
             user_input = self.bot.reply_to(message, "Hello Amigo! Choose the Option ",reply_markup=markup)
             self.bot.register_next_step_handler(user_input, self.login_processor)
-    
+
     def login_processor(self, user_input):
         if user_input.text == "Sales Entry Mode" or user_input.text == "Authoriser Mode":
+            print(f"User selected: {user_input.text}. Requesting passcode.")
             self.bot.send_message(user_input.chat.id,"Enter the Passcode to Proceed")
             self.bot.register_next_step_handler(user_input, self.authorize_user)
         elif user_input.text == "Menu": 
+            print("User selected Menu option.")
             markup = types.ReplyKeyboardMarkup(row_width=2)
             markup.add(types.KeyboardButton("Get sales By Date "))
             self.bot.send_message(user_input.chat.id,"Select the Option!",reply_markup=markup)
             self.bot.register_next_step_handler(user_input, self.sales_definer, "take_date_data")
         return
-            
+
     def authorize_user(self, user_input):
         if int(user_input.text) == int(os.environ['sales_enter_password']): 
+            print(f"Received passcode from user ID: {user_input.chat.id}. Proceeding to authorize.")
             self.bot.send_message(user_input.chat.id,"Entered into the sales data entry Mode")
             date = self.bot.send_message(user_input.chat.id,"Please Enter the Date of sales in this format: dd-mm-yyyy (e.g. 02-06-2004)")
             self.bot.register_next_step_handler(date, self.get_date)
-            
+
         elif int(user_input.text) == int(os.environ['Authoriser']): 
             markup = types.ReplyKeyboardMarkup(row_width=2)
             markup.add(types.KeyboardButton("Update stock"),types.KeyboardButton("Update Finance"))
@@ -55,7 +58,7 @@ class BotGadu:
         else:
             self.bot.send_message(user_input.chat.id, f"Hey, there seems to be an issue with the database. The error encountered is: {sale_checker}")
         return 
-            
+
     def get_retail_sales(self, user_input, sales_data):
         try:
             retail_can_sales = int(user_input.text)
@@ -68,7 +71,7 @@ class BotGadu:
         except Exception as e:
             self.bot.send_message(user_input.chat.id, f"An error: {e} occurred while sending the message for online sales. Please /start again here.")
         return 
-    
+
     def get_online_sales(self, user_input, sales_data):
         try:
             online_can_sales = int(user_input.text)
@@ -81,7 +84,7 @@ class BotGadu:
         except Exception as e:
             self.bot.send_message(user_input.chat.id, f"Error {e} Occured")
         return
-    
+
     def get_whole_sales(self, user_input, sales_data):
         try:
             if user_input.text.isnumeric():
@@ -93,7 +96,7 @@ class BotGadu:
         except Exception as e:
             self.bot.send_message(user_input.chat.id, f"Error {e} Occured")
         return   
-                
+
     def get_online_deposite(self, user_input, sales_data):
         try:
             if user_input.text.isnumeric():
@@ -105,7 +108,7 @@ class BotGadu:
         except Exception as e:
             self.bot.send_message(user_input.chat.id, f"Error {e} Occured")
         return
-        
+
     def get_retail_deposite(self, user_input, sales_data):
         try:
             if user_input.text.isnumeric():
@@ -117,7 +120,7 @@ class BotGadu:
         except Exception as e:
             self.bot.send_message(user_input.chat.id, f"Error {e} Occured")
         return   
-        
+
     def get_wholesale_deposite(self, user_input, sales_data):
         try:
             if user_input.text.isnumeric():
@@ -129,7 +132,7 @@ class BotGadu:
         except Exception as e:
             self.bot.send_message(user_input.chat.id, f"Error {e} Occured")
         return
-        
+
     def get_online_cans_return(self, user_input, sales_data):
         try:
             if user_input.text.isnumeric():
@@ -141,7 +144,7 @@ class BotGadu:
         except Exception as e:
             self.bot.send_message(user_input.chat.id, f"Error {e} Occured")
         return
-        
+
     def get_wholesale_retail_cans_return(self, user_input, sales_data):
         try:
             if user_input.text.isnumeric():
@@ -153,7 +156,7 @@ class BotGadu:
         except Exception as e:
             self.bot.send_message(user_input.chat.id, f"Error {e} Occured")
         return
-        
+
     def get_leakage(self, user_input, sales_data):
         try:
             leakage = user_input.text
@@ -166,8 +169,8 @@ class BotGadu:
         except Exception as e:
             self.bot.send_message(user_input.chat.id, f"Error {e} Occured")
         return        
-                
-        
+
+
     def sale_confirmation(self, user_input, sales_data):
         try:
             if user_input.text.isnumeric():
@@ -182,7 +185,7 @@ class BotGadu:
         except Exception as e:
             self.bot.send_message(user_input.chat.id, f"Error {e} Occured")
         return
-        
+
     def confirm_calculator(self, user_input, sales_data):
         if user_input.text == 'Yes':
             try:
@@ -209,11 +212,11 @@ class BotGadu:
 
     def payments_on_hold(self, user_input, sales_data):
         try:
-        	if user_input.text == "Yes":
-        		payment_hold = self.bot.send_message(user_input.chat.id,f"Please enter the total payment on hold on {sales_data['sale_date']}")
-        		self.bot.register_next_step_handler(payment_hold, self.on_hold_payments_recieved, sales_data)
-        	else:
-        		self.bot.send_message(user_input.chat.id,"Got into wrong step Click here to restart /start")
+            if user_input.text == "Yes":
+                payment_hold = self.bot.send_message(user_input.chat.id,f"Please enter the total payment on hold on {sales_data['sale_date']}")
+                self.bot.register_next_step_handler(payment_hold, self.on_hold_payments_recieved, sales_data)
+            else:
+                self.bot.send_message(user_input.chat.id,"Got into wrong step Click here to restart /start")
         except Exception as e:
             self.bot.send_message(user_input.chat.id, f"Error {e} Occured")
 
@@ -227,7 +230,7 @@ class BotGadu:
                 self.bot.send_message(user_input.chat.id, "Input should be a numeric value. Click /start to restart")
         except Exception as error:
             self.bot.send_message(user_input.chat.id, f"Error {error} Occured")
-            
+
     def get_expenses(self, user_input, sales_data):
         try:
             if user_input.text.isnumeric():
@@ -239,7 +242,7 @@ class BotGadu:
         except Exception as error:
             self.bot.send_message(user_input.chat.id, f"Error {error} Occured")
         return
-    
+
     def get_received_on_hold_amount(self, user_input, sales_data):
         try:
             if user_input.text.isnumeric():
@@ -255,7 +258,7 @@ class BotGadu:
                 self.bot.send_message(user_input.chat.id, "Input should be a numeric value. Click /start to restart")
         except Exception as error:
             self.bot.send_message(user_input.chat.id, f"Error {error} Occurred")
- 
+
     def complete_print(self, user_input, sales_data):
         try:
             if user_input.text == "Yes":
@@ -293,11 +296,11 @@ class BotGadu:
             user_input = self.bot.send_message(user_input.chat.id, 'Choose an Option to update the data in the DataBase', reply_markup=markup)
             self.bot.register_next_step_handler(user_input, self.Finance_data)
             return 
-        
+
     def stock_data(self, user_input, count=None, stock_data=None):
         if stock_data is None:
             stock_data = {}
-            
+
         if count and count < len(support_functions.Questions.stock_questions) + 1:
             stock_data[support_functions.Questions.stock_questions[count][1]] = user_input.text
             count = count + 1
@@ -316,7 +319,7 @@ class BotGadu:
         else:
             print('Request Out of bound')
         return
-        
+
     def Finance_data(self, user_input, confirmer=False, variable=None, reason=False,my_dict= None ):
         if reason and variable:
             my_dict = {}
@@ -353,7 +356,7 @@ class BotGadu:
                     return  
         else:
             self.bot.send_message(user_input.chat.id, "Try again then, << /start >>.")
-            
+
 
     def sales_definer(self, user_input, mode, date=None):
         try:
@@ -381,8 +384,3 @@ class BotGadu:
 
     def run(self):
         self.bot.infinity_polling()
-
-
-
-
-
